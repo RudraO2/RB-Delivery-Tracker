@@ -60,6 +60,17 @@ describe("shipment workbook import", () => {
     expect(result.shipments[1].warnings.some((w) => w.includes("could not be read"))).toBe(true);
   });
 
+  it("recognizes the service names used in real tracking sheets", () => {
+    const result = parseShipmentWorkbook(workbook([
+      ["TRACKING NO.", "NAME", "SERVICE"],
+      ["8QP000000000000000001", "A", "AU POST"],
+      ["DFSG00000000000000001", "B", "DRAGONFLY"],
+      ["QP000000001GB", "C", "ROYALMAIL"],
+    ]));
+    expect(result.shipments.map((s) => s.carrier)).toEqual(["australia-post", "intelcom", "royal-mail"]);
+    expect(result.shipments.flatMap((s) => s.warnings)).toEqual([]);
+  });
+
   it("reports unrecognized layouts and accepts Excel date cells", () => {
     expect(parseShipmentWorkbook(workbook([["Not an order table"], ["text"]])).issues[0].reason).toContain("Could not find");
     const result = parseShipmentWorkbook(workbook([["Tracking", "Name", "Date"], ["12345", "Example", new Date(Date.UTC(2026, 10, 4))]]));

@@ -13,7 +13,8 @@
     "test:tracking": "node --test tracking/worker.test.mjs",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
-    "prepare:tracking": "npm ci --prefix tracking && node tracking/prepare.mjs",
+    "setup:tracking": "npm install --prefix tracking --no-audit --no-fund",
+    "prepare:tracking": "npm run setup:tracking && node tracking/prepare.mjs",
     "icon": "electron scripts/make-icon.cjs",
     "dist": "tauri build"
   },

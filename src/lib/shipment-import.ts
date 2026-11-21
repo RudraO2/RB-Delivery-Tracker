@@ -94,6 +94,9 @@ const carrierAliases: Record<string, string[]> = {
   fedex: ["fedex", "federal express", "fed ex"],
   dhl: ["dhl", "dhl express"],
   "india-post": ["india post", "indiapost", "indian post"],
+  "australia-post": ["au post", "auspost", "aus post", "australia post", "australian post"],
+  // Dragonfly is Intelcom's international brand (Canada); the tracking engine names it intelcom.
+  intelcom: ["dragonfly", "dragon fly", "dragonfly canada", "intelcom"],
 };
 function smallEditDistance(a: string, b: string): number {
   const prev = Array.from({ length: b.length + 1 }, (_, i) => i);

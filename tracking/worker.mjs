@@ -1,8 +1,12 @@
 // One private request on stdin, one response on stdout. No listening server,
 // command-line parcel numbers, or logs containing customer information.
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { win32 } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
+// Free sources asked when the carrier's own site gives no history (USPS and others block
+// automated checks). They receive only the tracking number and postcode, never a name or address.
+export const FALLBACK_PROVIDERS = ['UPU', 'ParcelsApp', 'Ship24'];
 
 const STAGES = new Set(['pending', 'registered', 'accepted', 'in_transit', 'out_for_delivery', 'delivered', 'customs', 'failed_attempt', 'ready_for_pickup', 'returned', 'exception']);
 const KINDS = new Set(['not_found', 'indeterminate', 'challenge', 'rate_limited', 'maintenance', 'schema', 'input_required', 'invalid_input', 'transport', 'budget']);
@@ -31,7 +35,8 @@ export function browserPath(env = process.env, fileExists = existsSync) {
     [env['PROGRAMFILES(X86)'], 'Google', 'Chrome', 'Application', 'chrome.exe'],
     [env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'],
   ];
-  return candidates.filter(x => x[0]).map(x => join(...x)).find(fileExists);
+  // Always Windows paths: the installed app only runs on Windows, and tests run on any OS.
+  return candidates.filter(x => x[0]).map(x => win32.join(...x)).find(fileExists);
 }
 
 export async function lookup(input, createTracker) {
@@ -42,7 +47,7 @@ export async function lookup(input, createTracker) {
     return { ok: false, kind: 'invalid_input', error: ERRORS.invalid_input, retry_after_ms: null };
   }
   try {
-    const tracker = createTracker({ chromiumPath: browserPath(), providers: ['UPU'], userAgent: 'RBTracker/1.0' });
+    const tracker = createTracker({ chromiumPath: browserPath(), providers: FALLBACK_PROVIDERS, userAgent: 'RBTracker/1.0' });
     const answer = await tracker.track({ number, ...(carrier ? { carrier } : {}), ...(postcode ? { postcode } : {}) }, { budgetMs: 75_000 });
     const result = answer?.result ?? {};
     const events = Array.isArray(result.events) ? result.events.slice(0, 200).map(e => ({

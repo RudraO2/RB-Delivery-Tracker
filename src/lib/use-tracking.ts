@@ -7,6 +7,16 @@ type Update = (fn: (current: ShipmentData) => ShipmentData) => void;
 const WAIT_MS = 30_000;
 const RECHECK_MS = 6 * 60 * 60_000;
 const ERROR_RECHECK_MS = 60 * 60_000;
+type Request = { number: string; carrier: string | null; postcode: string | null };
+
+// The desktop app checks through its Rust backend. The development preview (npm run dev)
+// uses the Vite bridge in vite.config.ts, so tracking can be tested in a browser too.
+const canTrack = isTauri() || import.meta.env.DEV;
+async function track(request: Request): Promise<Result> {
+  if (isTauri()) return invoke<Result>("track_shipment", request);
+  const response = await fetch("/__track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) });
+  return (await response.json()) as Result;
+}
 
 export function useTracking(data: ShipmentData | null, update: Update) {
   const latest = useRef(data);
@@ -16,7 +26,7 @@ export function useTracking(data: ShipmentData | null, update: Update) {
   const [checking, setChecking] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const refresh = useCallback(async (shipment: Shipment) => {
-    if (!isTauri()) { setNotice("Tracking checks are available in the installed Windows app."); return; }
+    if (!canTrack) { setNotice("Tracking checks are available in the installed Windows app."); return; }
     if (busy.current || Date.now() - lastAttempt.current < WAIT_MS) { setNotice("Please wait a moment between tracking checks."); return; }
     busy.current = true;
     lastAttempt.current = Date.now();
@@ -24,7 +34,7 @@ export function useTracking(data: ShipmentData | null, update: Update) {
     setNotice("");
     const checkedAt = new Date().toISOString();
     try {
-      const result = await invoke<Result>("track_shipment", { number: shipment.trackingNumber, carrier: shipment.carrier || null, postcode: shipment.postcode || null });
+      const result = await track({ number: shipment.trackingNumber, carrier: shipment.carrier || null, postcode: shipment.postcode || null });
       update(current => ({ ...current, shipments: current.shipments.map(s => {
         if (s.id !== shipment.id || s.trackingNumber !== shipment.trackingNumber) return s;
         if (!result.ok) return { ...s, lastChecked: checkedAt, lastError: result.error || "Tracking is unavailable." };
@@ -40,7 +50,7 @@ export function useTracking(data: ShipmentData | null, update: Update) {
     } finally { busy.current = false; setChecking(null); }
   }, [update]);
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!canTrack) return;
     const tick = () => {
       if (busy.current || Date.now() - lastAttempt.current < WAIT_MS) return;
       const due = latest.current?.shipments.find(s => s.stage !== "delivered" && (!s.lastChecked || Date.now() - new Date(s.lastChecked).getTime() >= (s.lastError ? ERROR_RECHECK_MS : RECHECK_MS)));

@@ -38,6 +38,12 @@ test('invalid input cannot trigger a network call', async () => {
   assert.equal(response.kind, 'invalid_input');
 });
 
+test('enables the free fallback sources for carriers that block direct checks', async () => {
+  let options;
+  await lookup({ number: '9214490123456789012345', carrier: 'usps' }, opts => { options = opts; return { track: async () => ({ result: { current_stage: 'registered', events: [] } }) }; });
+  assert.deepEqual(options.providers, ['UPU', 'ParcelsApp', 'Ship24']);
+});
+
 test('finds browser using Windows install locations', () => {
   const path = browserPath({ PROGRAMFILES: 'C:\\Programs' }, p => p.endsWith('Chrome\\Application\\chrome.exe'));
   assert.ok(path?.endsWith('Chrome\\Application\\chrome.exe'));

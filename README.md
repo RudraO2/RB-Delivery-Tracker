@@ -39,17 +39,21 @@ manufacturer, plus shipment tracking-number checks. There are no logins. All dat
 - **Shipments** section: import your Excel/CSV of shipped orders (tracking number, name, address, carrier/service, postcode, date). A preview shows warnings before anything is saved.
 - The app checks each shipment about every 6 hours while it is open and online (one check at a time, 30 s apart). A failed check retries after 1 hour. Delivered shipments are removed 10 days after delivery unless marked as an open issue.
 - Alerts (Settings): pre-transit, no scan, in transit, out for delivery limits. They are review reminders, not delivery promises.
-- Engine: `universal-parcel-scraper` run by a bundled `node.exe` (`tracking/worker.mjs`), which uses the Edge or Chrome already on the PC. Only the tracking number, carrier and postcode leave the computer.
+- Engine: `universal-parcel-scraper` run by a bundled `node.exe` (`tracking/worker.mjs`), which uses the Edge or Chrome already on the PC for carriers that need it.
+- Carriers that block automatic checks (USPS among them) are looked up through free fallback sources: UPU, ParcelsApp and Ship24. No account or API key is needed.
+- Only the tracking number, carrier and postcode leave the computer. They go to the carrier and, when its own site gives no answer, to those fallback sources. Names and addresses are never sent.
+- Service names are matched to carriers on import, e.g. `USPS`, `ROYALMAIL`, `AU POST` (Australia Post) and `DRAGONFLY` (Intelcom).
 - Data: `%APPDATA%\RB Tracker\shipment-data.json`.
 
 ## Develop
 ```
 npm install
-npm run prepare:tracking   # once: downloads Node 24 and installs the tracking engine into src-tauri/tracking
+npm run setup:tracking     # once: installs the tracking engine into tracking/node_modules (needed for npm run dev checks)
+npm run prepare:tracking   # before npm start / dist: also downloads Node 24 for Windows and copies the engine into src-tauri/tracking
 npm test                   # unit tests (src/lib/*.test.ts)
 npm run test:tracking      # tracking worker tests
 npm run typecheck
-npm run dev                # browser preview at http://localhost:5173 (uses localStorage; tracking checks need the desktop app)
+npm run dev                # browser preview at http://localhost:5173 (uses localStorage; tracking checks run through this computer's Node)
 npm start                  # desktop app in dev mode (data in "RB Tracker Dev")
 npm run dist               # installer: src-tauri/target/release/bundle/nsis/RB Tracker_<version>_x64-setup.exe
 ```

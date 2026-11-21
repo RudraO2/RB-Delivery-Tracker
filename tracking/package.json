@@ -1,6 +1,6 @@
 {
   "dependencies": {
     "playwright-core": "1.63.0",
-    "universal-parcel-scraper": "0.637.1"
+    "universal-parcel-scraper": "0.1225.0"
   }
 }
